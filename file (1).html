@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graphs and Networks</title>
+  <style>
+    :root {
+      --bg: #f6f3fb;
+      --panel: #ffffff;
+      --sidebar: #8d188d;
+      --sidebar-dark: #6f0f70;
+      --accent: #d84bb8;
+      --text: #1f2430;
+      --muted: #5f6b7a;
+      --line: #e6dff0;
+      --active: #f4c7ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, var(--sidebar), var(--sidebar-dark));
+      color: white;
+      padding-bottom: 24px;
+    }
+
+    .hero {
+      padding: 22px 18px 18px;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.25)),
+        radial-gradient(circle at top left, #6cf 0%, transparent 30%),
+        radial-gradient(circle at top right, #ff4fd8 0%, transparent 30%),
+        radial-gradient(circle at bottom left, #7d6bff 0%, transparent 30%),
+        linear-gradient(135deg, #35125e, #9a1ea5 60%, #4a0c57);
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .hero-icon {
+      width: 58px;
+      height: 58px;
+      border: 2px solid rgba(255,255,255,0.9);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      font-weight: 700;
+    }
+
+    .nav {
+      list-style: none;
+      margin: 0;
+      padding: 16px 0 0;
+      position: relative;
+    }
+
+    .nav::before {
+      content: "";
+      position: absolute;
+      left: 24px;
+      top: 18px;
+      bottom: 18px;
+      width: 2px;
+      background: rgba(255,255,255,0.85);
+    }
+
+    .nav li {
+      position: relative;
+    }
+
+    .nav a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 14px 18px 14px 48px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.25;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .nav a::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      border: 3px solid white;
+      border-radius: 50%;
+      background: var(--sidebar);
+      z-index: 1;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .content {
+      padding: 28px;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px rgba(84, 50, 120, 0.06);
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      color: #6a1975;
+    }
+
+    .section p {
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+
+    .intro-note {
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .subtopic {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin: 14px 0;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .subtopic summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 700;
+      background: #fbf8ff;
+      border-bottom: 1px solid transparent;
+    }
+
+    .subtopic[open] summary {
+      border-bottom-color: var(--line);
+    }
+
+    .subtopic summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .subtopic .inner {
+      padding: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fcfbfe;
+    }
+
+    .card h4 {
+      margin: 0 0 8px;
+      color: #82218e;
+      font-size: 16px;
+    }
+
+    .key-list,
+    .plain-list {
+      margin: 8px 0 0 18px;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+
+    .equation {
+      display: inline-block;
+      background: #f6effb;
+      border: 1px solid #e7d6f3;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      margin: 8px 0;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f3e4f7;
+      color: #7d1682;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .lesson-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .lesson-nav a {
+      text-decoration: none;
+      color: white;
+      background: #8d188d;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .lesson-nav a:only-child {
+      margin-left: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: #faf5fd;
+      color: #6d1878;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="hero">
+        <div class="hero-icon">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="3" fill="white"/>
+            <circle cx="28" cy="8" r="3" fill="white"/>
+            <circle cx="8" cy="28" r="3" fill="white"/>
+            <circle cx="28" cy="28" r="3" fill="white"/>
+            <circle cx="18" cy="18" r="3" fill="white"/>
+            <line x1="8" y1="8" x2="18" y2="18" stroke="white" stroke-width="2"/>
+            <line x1="28" y1="8" x2="18" y2="18" stroke="white" stroke-width="2"/>
+            <line x1="8" y1="28" x2="18" y2="18" stroke="white" stroke-width="2"/>
+            <line x1="28" y1="28" x2="18" y2="18" stroke="white" stroke-width="2"/>
+          </svg>
+        </div>
+        <h1>Graphs and<br>Networks</h1>
+      </div>
+
+      <ul class="nav" id="menu">
+        <li><a href="#introduction" class="active">Introduction</a></li>
+        <li><a href="#konigsberg">The Bridges of Königsberg</a></li>
+        <li><a href="#handshakes">Handshakes and Dating</a></li>
+        <li><a href="#planar">Planar Graphs</a></li>
+        <li><a href="#colouring">Map Colouring</a></li>
+        <li><a href="#tsp">The Travelling Salesman Problem</a></li>
+        <li><a href="#scheduling">Scheduling Problems</a></li>
+        <li><a href="#everyday">Graphs in Everyday Life</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+      <section class="section" id="introduction">
+        <h2>Introduction</h2>
+        <p class="intro-note">This lesson introduces the basic language of graph theory before moving to famous problems and applications.</p>
+
+        <div class="subtopic" open>
+          <summary>What is a graph?</summary>
+          <div class="inner">
+            <p>A <strong>graph</strong> is a mathematical way of showing connections. A graph is made of <strong>vertices</strong> (points) and <strong>edges</strong> (lines joining points).</p>
+            <p>We often write a graph as <strong>G = (V, E)</strong>, where <strong>V</strong> is the set of vertices and <strong>E</strong> is the set of edges.</p>
+
+            <div class="diagram">
+              <svg width="260" height="120" viewBox="0 0 260 120">
+                <line x1="50" y1="80" x2="130" y2="35" stroke="#444" stroke-width="3"/>
+                <line x1="130" y1="35" x2="210" y2="80" stroke="#444" stroke-width="3"/>
+                <line x1="50" y1="80" x2="210" y2="80" stroke="#444" stroke-width="3"/>
+                <circle cx="50" cy="80" r="10" fill="#8d188d"/>
+                <circle cx="130" cy="35" r="10" fill="#8d188d"/>
+                <circle cx="210" cy="80" r="10" fill="#8d188d"/>
+                <text x="42" y="103" font-size="14" fill="#333">A</text>
+                <text x="123" y="18" font-size="14" fill="#333">B</text>
+                <text x="202" y="103" font-size="14" fill="#333">C</text>
+              </svg>
+            </div>
+
+            <p>In this graph, A, B, and C are vertices. The three lines connecting them are edges.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Vertices and edges</summary>
+          <div class="inner">
+            <div class="grid-2">
+              <div class="card">
+                <h4>Vertex</h4>
+                <p>A <strong>vertex</strong> is a point in a graph. The plural of vertex is <strong>vertices</strong>. A vertex can represent a city, a person, a website, a school, or any object.</p>
+              </div>
+              <div class="card">
+                <h4>Edge</h4>
+                <p>An <strong>edge</strong> joins two vertices. It shows a connection or relationship such as a road, friendship, flight route, or communication link.</p>
+              </div>
+            </div>
+
+            <table>
+              <tr>
+                <th>Real situation</th>
+                <th>Vertex means</th>
+                <th>Edge means</th>
+              </tr>
+              <tr>
+                <td>Road map</td>
+                <td>Town or city</td>
+                <td>Road between places</td>
+              </tr>
+              <tr>
+                <td>Social network</td>
+                <td>Person</td>
+                <td>Friendship or follow</td>
+              </tr>
+              <tr>
+                <td>Flight network</td>
+                <td>Airport</td>
+                <td>Direct flight</td>
+              </tr>
+              <tr>
+                <td>Computer network</td>
+                <td>Device</td>
+                <td>Communication link</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Order and size of a graph</summary>
+          <div class="inner">
+            <p>The <strong>order</strong> of a graph is the number of vertices in it.</p>
+            <p>The <strong>size</strong> of a graph is the number of edges in it.</p>
+            <div class="equation">Order = number of vertices</div>
+            <div class="equation">Size = number of edges</div>
+            <p>Example: if a graph has 5 vertices and 7 edges, then its order is 5 and its size is 7.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Degree of a vertex</summary>
+          <div class="inner">
+            <p>The <strong>degree</strong> of a vertex is the number of edges connected to it.</p>
+            <p>If three edges meet at a vertex, then that vertex has degree 3.</p>
+
+            <div class="diagram">
+              <svg width="280" height="150" viewBox="0 0 280 150">
+                <line x1="140" y1="75" x2="60" y2="35" stroke="#444" stroke-width="3"/>
+                <line x1="140" y1="75" x2="60" y2="115" stroke="#444" stroke-width="3"/>
+                <line x1="140" y1="75" x2="220" y2="75" stroke="#444" stroke-width="3"/>
+                <circle cx="140" cy="75" r="11" fill="#d84bb8"/>
+                <circle cx="60" cy="35" r="10" fill="#8d188d"/>
+                <circle cx="60" cy="115" r="10" fill="#8d188d"/>
+                <circle cx="220" cy="75" r="10" fill="#8d188d"/>
+                <text x="126" y="100" font-size="14" fill="#333">A</text>
+                <text x="14" y="39" font-size="14" fill="#333">B</text>
+                <text x="14" y="119" font-size="14" fill="#333">C</text>
+                <text x="232" y="79" font-size="14" fill="#333">D</text>
+              </svg>
+            </div>
+
+            <p>Vertex A is connected to B, C, and D, so the degree of A is 3.</p>
+            <p>An <strong>isolated vertex</strong> has degree 0. A <strong>pendant vertex</strong> has degree 1.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Adjacent vertices and incident edges</summary>
+          <div class="inner">
+            <p>Two vertices are <strong>adjacent</strong> if an edge joins them.</p>
+            <p>An edge is <strong>incident</strong> to a vertex if that edge touches the vertex.</p>
+            <p>In the edge AB, vertices A and B are adjacent, and the edge AB is incident to both A and B.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Subgraphs</summary>
+          <div class="inner">
+            <p>A <strong>subgraph</strong> is a smaller graph formed from some of the vertices and some of the edges of a bigger graph.</p>
+            <div class="grid-2">
+              <div class="card">
+                <h4>Original graph</h4>
+                <div class="diagram">
+                  <svg width="240" height="130" viewBox="0 0 240 130">
+                    <line x1="50" y1="35" x2="120" y2="20" stroke="#444" stroke-width="3"/>
+                    <line x1="120" y1="20" x2="190" y2="40" stroke="#444" stroke-width="3"/>
+                    <line x1="50" y1="35" x2="65" y2="100" stroke="#444" stroke-width="3"/>
+                    <line x1="65" y1="100" x2="165" y2="100" stroke="#444" stroke-width="3"/>
+                    <line x1="165" y1="100" x2="190" y2="40" stroke="#444" stroke-width="3"/>
+                    <circle cx="50" cy="35" r="9" fill="#8d188d"/>
+                    <circle cx="120" cy="20" r="9" fill="#8d188d"/>
+                    <circle cx="190" cy="40" r="9" fill="#8d188d"/>
+                    <circle cx="65" cy="100" r="9" fill="#8d188d"/>
+                    <circle cx="165" cy="100" r="9" fill="#8d188d"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="card">
+                <h4>One subgraph</h4>
+                <div class="diagram">
+                  <svg width="240" height="130" viewBox="0 0 240 130">
+                    <line x1="50" y1="35" x2="120" y2="20" stroke="#444" stroke-width="3"/>
+                    <line x1="120" y1="20" x2="190" y2="40" stroke="#444" stroke-width="3"/>
+                    <circle cx="50" cy="35" r="9" fill="#d84bb8"/>
+                    <circle cx="120" cy="20" r="9" fill="#d84bb8"/>
+                    <circle cx="190" cy="40" r="9" fill="#d84bb8"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <p>A subgraph must use only vertices and edges already present in the original graph.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Types of graphs</summary>
+          <div class="inner">
+            <span class="tag">Simple graph</span>
+            <span class="tag">Directed graph</span>
+            <span class="tag">Weighted graph</span>
+            <span class="tag">Complete graph</span>
+            <span class="tag">Connected graph</span>
+            <span class="tag">Disconnected graph</span>
+
+            <div class="grid-2">
+              <div class="card">
+                <h4>Simple graph</h4>
+                <p>No loops and no repeated edges between the same pair of vertices.</p>
+              </div>
+              <div class="card">
+                <h4>Directed graph</h4>
+                <p>Edges have directions, shown by arrows.</p>
+              </div>
+              <div class="card">
+                <h4>Weighted graph</h4>
+                <p>Edges have values such as distance, time, or cost.</p>
+              </div>
+              <div class="card">
+                <h4>Complete graph</h4>
+                <p>Every vertex is joined to every other vertex.</p>
+              </div>
+              <div class="card">
+                <h4>Connected graph</h4>
+                <p>You can move from any vertex to any other by following edges.</p>
+              </div>
+              <div class="card">
+                <h4>Disconnected graph</h4>
+                <p>Some vertices or groups of vertices are not linked to the rest.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Paths, trails, and cycles</summary>
+          <div class="inner">
+            <ul class="key-list">
+              <li>A <strong>walk</strong> is any sequence of vertices connected by edges.</li>
+              <li>A <strong>trail</strong> is a walk with no repeated edges.</li>
+              <li>A <strong>path</strong> is a walk with no repeated vertices.</li>
+              <li>A <strong>cycle</strong> is a path that starts and ends at the same vertex.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#konigsberg">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="konigsberg">
+        <h2>The Bridges of Königsberg</h2>
+        <p>The city of Königsberg had four land areas connected by seven bridges. People wondered whether it was possible to take a walk that crossed each bridge exactly once.</p>
+
+        <div class="subtopic" open>
+          <summary>The problem</summary>
+          <div class="inner">
+            <p>Instead of drawing the exact map, Leonhard Euler simplified the situation into a graph.</p>
+            <p>Each land area became a <strong>vertex</strong>, and each bridge became an <strong>edge</strong>.</p>
+            <div class="diagram">
+              <svg width="300" height="180" viewBox="0 0 300 180">
+                <line x1="150" y1="30" x2="70" y2="80" stroke="#444" stroke-width="3"/>
+                <line x1="150" y1="30" x2="230" y2="80" stroke="#444" stroke-width="3"/>
+                <line x1="70" y1="80" x2="230" y2="80" stroke="#444" stroke-width="3"/>
+                <line x1="70" y1="80" x2="150" y2="145" stroke="#444" stroke-width="3"/>
+                <line x1="230" y1="80" x2="150" y2="145" stroke="#444" stroke-width="3"/>
+                <line x1="150" y1="30" x2="70" y2="80" stroke="#444" stroke-width="3" transform="translate(0,8)"/>
+                <line x1="150" y1="30" x2="230" y2="80" stroke="#444" stroke-width="3" transform="translate(0,8)"/>
+                <circle cx="150" cy="30" r="11" fill="#8d188d"/>
+                <circle cx="70" cy="80" r="11" fill="#8d188d"/>
+                <circle cx="230" cy="80" r="11" fill="#8d188d"/>
+                <circle cx="150" cy="145" r="11" fill="#8d188d"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Euler’s key idea</summary>
+          <div class="inner">
+            <p>Euler noticed that a walk using every edge exactly once is possible only in special cases.</p>
+            <p>For such a walk:</p>
+            <ul class="plain-list">
+              <li>Either all vertices have even degree, or</li>
+              <li>Exactly two vertices have odd degree.</li>
+            </ul>
+            <p>In the Königsberg graph, more than two vertices have odd degree, so the walk is impossible.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Why this matters</summary>
+          <div class="inner">
+            <p>This problem is often seen as the beginning of graph theory. It showed that the important thing is not the exact shape of the map, but the pattern of connections.</p>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#introduction">Previous Lesson</a>
+          <a href="#handshakes">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="handshakes">
+        <h2>Handshakes and Dating</h2>
+        <p>Graphs can model social connections such as handshakes, friendships, and matching problems.</p>
+
+        <div class="subtopic" open>
+          <summary>Handshake graphs</summary>
+          <div class="inner">
+            <p>Imagine a party where each person is a vertex. If two people shake hands, draw an edge between them.</p>
+            <p>The resulting graph shows who has shaken hands with whom.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Sum of degrees</summary>
+          <div class="inner">
+            <p>Every edge contributes 2 to the total degree count because each edge touches two vertices.</p>
+            <div class="equation">Sum of all vertex degrees = 2 × number of edges</div>
+            <p>This is called the <strong>handshake theorem</strong>.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Odd degree result</summary>
+          <div class="inner">
+            <p>In any graph, the number of vertices with odd degree is always even.</p>
+            <p>This is a very useful result in many graph problems.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Dating and matching</summary>
+          <div class="inner">
+            <p>A <strong>matching</strong> is a set of edges in which no two edges share a vertex.</p>
+            <p>Matchings are used in pairing students, assigning jobs, or matching applicants to places.</p>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#konigsberg">Previous Lesson</a>
+          <a href="#planar">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="planar">
+        <h2>Planar Graphs</h2>
+        <p>A graph is called <strong>planar</strong> if it can be drawn on a flat surface without any edges crossing.</p>
+
+        <div class="subtopic" open>
+          <summary>What planar means</summary>
+          <div class="inner">
+            <p>Sometimes a graph appears to have crossings, but by moving vertices around, you can redraw it without crossings. If this is possible, the graph is planar.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Faces and regions</summary>
+          <div class="inner">
+            <p>When a planar graph is drawn, it divides the plane into regions called <strong>faces</strong>. The outside area also counts as a face.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Euler’s formula</summary>
+          <div class="inner">
+            <p>For a connected planar graph:</p>
+            <div class="equation">Vertices − Edges + Faces = 2</div>
+            <p>This is one of the most important formulas in graph theory.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Non-planar graphs</summary>
+          <div class="inner">
+            <p>Some graphs can never be drawn without crossings. Two famous examples are:</p>
+            <ul class="plain-list">
+              <li><strong>K₅</strong>: a complete graph on 5 vertices</li>
+              <li><strong>K₃,₃</strong>: a complete bipartite graph with 3 vertices in each group</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#handshakes">Previous Lesson</a>
+          <a href="#colouring">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="colouring">
+        <h2>Map Colouring</h2>
+        <p>Map colouring asks how many colours are needed so that neighbouring regions do not share the same colour.</p>
+
+        <div class="subtopic" open>
+          <summary>From maps to graphs</summary>
+          <div class="inner">
+            <p>Each region of a map can be represented by a vertex. If two regions share a border, connect the corresponding vertices with an edge.</p>
+            <p>This turns a map-colouring problem into a graph-colouring problem.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>The four-colour theorem</summary>
+          <div class="inner">
+            <p>Any flat map can be coloured using at most four colours so that no two adjacent regions have the same colour.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Graph colouring</summary>
+          <div class="inner">
+            <p>In graph colouring, we colour vertices so that adjacent vertices have different colours.</p>
+            <p>This idea is useful in timetabling, scheduling, and resource allocation.</p>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#planar">Previous Lesson</a>
+          <a href="#tsp">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="tsp">
+        <h2>The Travelling Salesman Problem</h2>
+        <p>This problem asks for the shortest route that visits each city once and returns to the starting city.</p>
+
+        <div class="subtopic" open>
+          <summary>Graph model</summary>
+          <div class="inner">
+            <p>Each city is a vertex. Roads or routes are edges. Distances or travel costs are shown as weights on the edges.</p>
+            <p>This makes it a <strong>weighted graph</strong> problem.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Why it is important</summary>
+          <div class="inner">
+            <p>The travelling salesman problem appears in delivery routing, circuit design, tour planning, and logistics.</p>
+            <p>For a small number of cities, the problem is manageable. For large networks, it becomes very difficult.</p>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#colouring">Previous Lesson</a>
+          <a href="#scheduling">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="scheduling">
+        <h2>Scheduling Problems</h2>
+        <p>Graphs can show which tasks must happen before others.</p>
+
+        <div class="subtopic" open>
+          <summary>Directed graphs for scheduling</summary>
+          <div class="inner">
+            <p>Each task is a vertex. An arrow from A to B means task A must be completed before task B starts.</p>
+            <p>These are usually shown with <strong>directed graphs</strong>.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Directed acyclic graphs</summary>
+          <div class="inner">
+            <p>A scheduling graph should not contain a cycle, because a cycle would mean tasks depend on one another in a loop.</p>
+            <p>A directed graph with no cycles is called a <strong>directed acyclic graph</strong>, or <strong>DAG</strong>.</p>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Applications</summary>
+          <div class="inner">
+            <ul class="plain-list">
+              <li>School timetables</li>
+              <li>Project planning</li>
+              <li>Manufacturing steps</li>
+              <li>Computer processes</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#tsp">Previous Lesson</a>
+          <a href="#everyday">Next Lesson</a>
+        </div>
+      </section>
+
+      <section class="section" id="everyday">
+        <h2>Graphs in Everyday Life</h2>
+        <p>Graph theory is not just about puzzles. It is used in many practical systems.</p>
+
+        <div class="subtopic" open>
+          <summary>Common applications</summary>
+          <div class="inner">
+            <div class="grid-2">
+              <div class="card">
+                <h4>Transport</h4>
+                <p>Stations, bus stops, airports, and routes form graphs.</p>
+              </div>
+              <div class="card">
+                <h4>Internet</h4>
+                <p>Devices and webpages are connected in huge networks.</p>
+              </div>
+              <div class="card">
+                <h4>Social media</h4>
+                <p>Users are vertices, and interactions create edges.</p>
+              </div>
+              <div class="card">
+                <h4>Biology</h4>
+                <p>Food webs, nerve cells, and gene interactions can be studied with graphs.</p>
+              </div>
+              <div class="card">
+                <h4>Computer science</h4>
+                <p>Search engines, networks, and data structures use graph ideas.</p>
+              </div>
+              <div class="card">
+                <h4>Planning</h4>
+                <p>Graphs help solve optimisation and scheduling problems.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subtopic">
+          <summary>Final summary</summary>
+          <div class="inner">
+            <ul class="key-list">
+              <li>A graph is made of vertices and edges.</li>
+              <li>Order counts vertices; size counts edges.</li>
+              <li>Degree tells how many edges touch a vertex.</li>
+              <li>Subgraphs are smaller graphs from larger ones.</li>
+              <li>Graph theory helps solve problems in maps, travel, planning, and networks.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="lesson-nav">
+          <a href="#scheduling">Previous Lesson</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const sections = document.querySelectorAll(".section");
+    const links = document.querySelectorAll("#menu a");
+
+    function activateLink() {
+      let current = "";
+      sections.forEach(section => {
+        const top = window.scrollY;
+        const offset = section.offsetTop - 120;
+        const height = section.offsetHeight;
+        if (top >= offset && top < offset + height) {
+          current = section.getAttribute("id");
+        }
+      });
+
+      links.forEach(link => {
+        link.classList.remove("active");
+        if (link.getAttribute("href") === "#" + current) {
+          link.classList.add("active");
+        }
+      });
+    }
+
+    window.addEventListener("scroll", activateLink);
+    activateLink();
+  </script>
+</body>
+</html>
